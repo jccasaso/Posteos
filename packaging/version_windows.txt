@@ -1,0 +1,16 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(filevers=(1, 0, 0, 0), prodvers=(1, 0, 0, 0)),
+  kids=[
+    StringFileInfo([
+      StringTable('0C0A04B0', [
+        StringStruct('CompanyName', 'Posteos'),
+        StringStruct('FileDescription', 'Posteos - Publicaciones para redes sociales con IA'),
+        StringStruct('FileVersion', '1.0.0'),
+        StringStruct('ProductName', 'Posteos'),
+        StringStruct('ProductVersion', '1.0.0'),
+        StringStruct('OriginalFilename', 'Posteos.exe'),
+      ])
+    ]),
+    VarFileInfo([VarStruct('Translation', [0x0C0A, 1200])]),
+  ]
+)
