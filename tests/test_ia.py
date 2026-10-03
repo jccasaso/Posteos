@@ -194,3 +194,12 @@ def test_describir_error_autenticacion():
     peticion = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
     error = anthropic.AuthenticationError("x", response=httpx2.Response(401, request=peticion), body=None)
     assert "clave de API" in describir_error(error)
+
+
+def test_cancelacion_previa_detiene_la_tarea():
+    from posteos.ia import Cancelado
+
+    m = motor(Servidor())
+    m.cancelar()
+    with pytest.raises(Cancelado):
+        m.analizar_cuenta("https://x.com/a", "x", "")

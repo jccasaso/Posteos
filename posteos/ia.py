@@ -251,7 +251,6 @@ class MotorIA:
         output_format: type[BaseModel] | None = None,
         transmitir_texto: bool = False,
     ) -> _Respuesta:
-        self._cancelado.clear()
         mensajes: list[dict] = [{"role": "user", "content": contenido}]
         parametros: dict = {
             "model": self.modelo,
@@ -272,6 +271,8 @@ class MotorIA:
         fuentes: list[tuple[str, str]] = []
         final = None
         for _ in range(MAX_CONTINUACIONES):
+            if self._cancelado.is_set():
+                raise Cancelado()
             with self.cliente.beta.messages.stream(messages=mensajes, **parametros) as flujo:
                 for evento in flujo:
                     if self._cancelado.is_set():
