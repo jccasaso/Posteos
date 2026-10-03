@@ -15,7 +15,8 @@ from posteos import NOMBRE_APP
 from posteos.opciones import REDES_POR_DEFECTO
 
 SERVICIO_KEYRING = NOMBRE_APP
-USUARIO_KEYRING = "anthropic_api_key"
+USUARIOS_KEYRING = {"claude": "anthropic_api_key", "gemini": "gemini_api_key"}
+VARIABLES_ENTORNO = {"claude": ("ANTHROPIC_API_KEY",), "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY")}
 MAX_HISTORIAL = 200
 
 
@@ -49,8 +50,12 @@ def _escribir_json(ruta: Path, datos: Any) -> None:
 
 @dataclass
 class Configuracion:
-    modelo: str = "claude-opus-5-5"
-    esfuerzo: str = "high"
+    proveedor: str = "gemini"  # gemini | ollama | claude
+    modelo_gemini: str = "gemini-flash-latest"
+    modelo_ollama: str = "gemma3:12b"
+    ollama_url: str = "http://localhost:11434"
+    modelo_claude: str = "claude-opus-5-5"
+    esfuerzo: str = "high"  # solo Claude
     pais: str = "Argentina"
     variante: str = "Español neutro (Latinoamérica)"
     redes: list[str] = field(default_factory=lambda: list(REDES_POR_DEFECTO))
@@ -58,49 +63,71 @@ class Configuracion:
     marca_nombre: str = ""
     marca_sector: str = ""
     marca_descripcion: str = ""
-    # Solo se usa si el sistema no tiene un almacén seguro de credenciales.
-    api_key_respaldo: str = ""
+    # Solo se usan si el sistema no tiene un almacén seguro de credenciales.
+    claves_respaldo: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def cargar(cls) -> "Configuracion":
         datos = _leer_json(carpeta_datos() / "configuracion.json", {})
+        # Compatibilidad con la versión 1.0, que solo usaba Claude.
+        if "modelo" in datos and "modelo_claude" not in datos:
+            datos["modelo_claude"] = datos["modelo"]
+        if datos.get("api_key_respaldo"):
+            datos.setdefault("claves_respaldo", {})["claude"] = datos["api_key_respaldo"]
         validos = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in datos.items() if k in validos})
 
     def guardar(self) -> None:
         _escribir_json(carpeta_datos() / "configuracion.json", asdict(self))
 
-    # --- Clave de API -------------------------------------------------------
+    @property
+    def modelo_actual(self) -> str:
+        return {"claude": self.modelo_claude, "ollama": self.modelo_ollama}.get(self.proveedor, self.modelo_gemini)
 
-    def obtener_api_key(self) -> str:
+    def proveedor_listo(self) -> bool:
+        """Ollama no necesita clave; Gemini y Claude sí."""
+        return self.proveedor == "ollama" or bool(self.obtener_api_key(self.proveedor))
+
+    # --- Claves de API --------------------------------------------------------
+
+    def obtener_api_key(self, proveedor: str) -> str:
+        usuario = USUARIOS_KEYRING.get(proveedor)
+        if not usuario:
+            return ""
         try:
             import keyring
 
-            clave = keyring.get_password(SERVICIO_KEYRING, USUARIO_KEYRING)
+            clave = keyring.get_password(SERVICIO_KEYRING, usuario)
             if clave:
                 return clave
         except Exception:
             pass
-        return self.api_key_respaldo or os.environ.get("ANTHROPIC_API_KEY", "")
+        if self.claves_respaldo.get(proveedor):
+            return self.claves_respaldo[proveedor]
+        return next((os.environ[v] for v in VARIABLES_ENTORNO.get(proveedor, ()) if os.environ.get(v)), "")
 
-    def guardar_api_key(self, clave: str) -> bool:
+    def guardar_api_key(self, proveedor: str, clave: str) -> bool:
         """Guarda la clave en el almacén seguro del sistema. Devuelve False si tuvo que usar el archivo."""
+        usuario = USUARIOS_KEYRING[proveedor]
         clave = clave.strip()
         try:
             import keyring
 
             if clave:
-                keyring.set_password(SERVICIO_KEYRING, USUARIO_KEYRING, clave)
+                keyring.set_password(SERVICIO_KEYRING, usuario, clave)
             else:
                 try:
-                    keyring.delete_password(SERVICIO_KEYRING, USUARIO_KEYRING)
+                    keyring.delete_password(SERVICIO_KEYRING, usuario)
                 except Exception:
                     pass
-            self.api_key_respaldo = ""
+            self.claves_respaldo.pop(proveedor, None)
             self.guardar()
             return True
         except Exception:
-            self.api_key_respaldo = clave
+            if clave:
+                self.claves_respaldo[proveedor] = clave
+            else:
+                self.claves_respaldo.pop(proveedor, None)
             self.guardar()
             return False
 

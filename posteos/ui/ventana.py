@@ -65,9 +65,10 @@ class VentanaPrincipal(QMainWindow):
         self.ctx.avisos.usar_perfil.connect(self._usar_perfil)
         self.ctx.avisos.ir_a_configuracion.connect(self._ir_a_configuracion)
 
-        if not self.ctx.config.obtener_api_key():
+        if not self.ctx.config.proveedor_listo():
             self._ir_a_configuracion(
-                "Bienvenido. Para empezar, pegue su clave de API de Anthropic y presione «Guardar configuración»."
+                "Bienvenido. Para empezar gratis, consiga una clave de Google Gemini en aistudio.google.com "
+                "(no pide tarjeta), péguela abajo y presione «Guardar configuración»."
             )
 
     @Slot(str)

@@ -5,8 +5,9 @@ if not exist ".venv\Scripts\python.exe" (
     echo Creando el entorno de Python...
     py -3 -m venv .venv || python -m venv .venv || goto :error
     ".venv\Scripts\python.exe" -m pip install --upgrade pip
-    ".venv\Scripts\python.exe" -m pip install -r requirements.txt || goto :error
 )
+echo Verificando dependencias...
+".venv\Scripts\python.exe" -m pip install -q -r requirements.txt || goto :error
 start "" ".venv\Scripts\pythonw.exe" run.py
 exit /b 0
 

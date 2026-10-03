@@ -9,10 +9,13 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy
 RAIZ = Path(SPECPATH).parent
 
 datos = [(str(RAIZ / "posteos" / "recursos"), "posteos/recursos")]
-datos += collect_data_files("anthropic")
-datos += copy_metadata("anthropic") + copy_metadata("keyring")
+for paquete in ("anthropic", "google.genai", "ddgs"):
+    datos += collect_data_files(paquete)
+for distribucion in ("anthropic", "google-genai", "ollama", "ddgs", "keyring"):
+    datos += copy_metadata(distribucion)
 
-ocultos = collect_submodules("anthropic") + collect_submodules("keyring.backends")
+ocultos = collect_submodules("anthropic") + collect_submodules("google.genai") + collect_submodules("ddgs")
+ocultos += collect_submodules("keyring.backends") + ["ollama", "primp"]
 if sys.platform == "win32":
     ocultos += ["win32ctypes.core"]
 

@@ -1,13 +1,13 @@
 VSVersionInfo(
-  ffi=FixedFileInfo(filevers=(1, 0, 0, 0), prodvers=(1, 0, 0, 0)),
+  ffi=FixedFileInfo(filevers=(1, 1, 0, 0), prodvers=(1, 1, 0, 0)),
   kids=[
     StringFileInfo([
       StringTable('0C0A04B0', [
         StringStruct('CompanyName', 'Posteos'),
         StringStruct('FileDescription', 'Posteos - Publicaciones para redes sociales con IA'),
-        StringStruct('FileVersion', '1.0.0'),
+        StringStruct('FileVersion', '1.1.0'),
         StringStruct('ProductName', 'Posteos'),
-        StringStruct('ProductVersion', '1.0.0'),
+        StringStruct('ProductVersion', '1.1.0'),
         StringStruct('OriginalFilename', 'Posteos.exe'),
       ])
     ]),

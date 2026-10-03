@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import io
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,6 +26,7 @@ class Adjunto:
     tipo: str  # "imagen" o "video"
     descripcion: str  # metadatos legibles (resolución, duración...)
     imagenes: list[Image.Image] = field(default_factory=list, repr=False)
+    duracion: float = 0.0  # segundos (solo videos)
 
     @property
     def nombre(self) -> str:
@@ -113,10 +113,9 @@ def cargar_video(ruta: Path, fotogramas: int = FOTOGRAMAS_POR_VIDEO) -> Adjunto:
     orientacion = "vertical" if alto > ancho else "horizontal" if ancho > alto else "cuadrado"
     descripcion = (
         f"Video {ancho}×{alto} px ({orientacion}, proporción {_proporcion(ancho, alto)}), "
-        f"duración {_formatear_duracion(duracion)}, {fps:.0f} fps. "
-        f"Se adjuntan {len(imagenes)} fotogramas representativos en orden cronológico."
+        f"duración {_formatear_duracion(duracion)}, {fps:.0f} fps."
     )
-    return Adjunto(ruta=ruta, tipo="video", descripcion=descripcion, imagenes=imagenes)
+    return Adjunto(ruta=ruta, tipo="video", descripcion=descripcion, imagenes=imagenes, duracion=duracion)
 
 
 def cargar_adjunto(ruta: str | Path) -> Adjunto:
@@ -131,29 +130,28 @@ def cargar_adjunto(ruta: str | Path) -> Adjunto:
     raise ErrorAdjunto(f"Formato no admitido: «{ruta.suffix}». Use imágenes o videos.")
 
 
-def imagen_a_bloque(imagen: Image.Image) -> dict:
+def imagen_a_jpeg(imagen: Image.Image) -> bytes:
     buffer = io.BytesIO()
     imagen.save(buffer, format="JPEG", quality=85, optimize=True)
-    datos = base64.standard_b64encode(buffer.getvalue()).decode("ascii")
-    return {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": datos}}
+    return buffer.getvalue()
 
 
-def bloques_de_adjuntos(adjuntos: list[Adjunto]) -> list[dict]:
-    """Convierte los adjuntos en bloques de contenido (texto descriptivo + imágenes)."""
-    bloques: list[dict] = []
+def repartir_imagenes(adjuntos: list[Adjunto]) -> list[tuple[Adjunto, list[Image.Image]]]:
+    """Imágenes a enviar por adjunto, respetando el máximo total (en videos, fotogramas distribuidos)."""
+    resultado = []
     restantes = MAX_IMAGENES_TOTALES
-    for numero, adjunto in enumerate(adjuntos, start=1):
+    for adjunto in adjuntos:
         imagenes = adjunto.imagenes[: max(restantes, 0)]
         if adjunto.tipo == "video" and imagenes and len(imagenes) < len(adjunto.imagenes):
-            # Si hay que recortar, conservar fotogramas distribuidos y no solo los primeros.
             paso = len(adjunto.imagenes) / len(imagenes)
             imagenes = [adjunto.imagenes[int(i * paso)] for i in range(len(imagenes))]
-        bloques.append(
-            {"type": "text", "text": f"Adjunto {numero}: «{adjunto.nombre}» — {adjunto.descripcion}"}
-        )
-        bloques.extend(imagen_a_bloque(img) for img in imagenes)
+        resultado.append((adjunto, imagenes))
         restantes -= len(imagenes)
-    return bloques
+    return resultado
+
+
+def describir_adjunto(numero: int, adjunto: Adjunto) -> str:
+    return f"Adjunto {numero}: «{adjunto.nombre}» — {adjunto.descripcion}"
 
 
 def _proporcion(ancho: int, alto: int) -> str:

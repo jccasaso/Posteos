@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QLabel,
     QLineEdit,
     QMessageBox,
     QPlainTextEdit,
@@ -23,7 +22,7 @@ from PySide6.QtWidgets import (
 from posteos import opciones
 from posteos.config import agregar_al_historial
 from posteos.exportar import resultado_a_markdown
-from posteos.ia import MotorIA, ResultadoGeneracion, SolicitudPost
+from posteos.ia import Proveedor, ResultadoGeneracion, SolicitudPost, crear_proveedor
 from posteos.ui.adjuntos import SelectorAdjuntos
 from posteos.ui.comunes import Contexto, IndicadorProgreso, combo, seleccionar, valor
 from posteos.ui.resultados import VistaResultados
@@ -33,7 +32,7 @@ class PestanaCrear(QWidget):
     def __init__(self, ctx: Contexto, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
-        self._motor: MotorIA | None = None
+        self._motor: Proveedor | None = None
         self._idea_en_curso = ""
         config = ctx.config
 
@@ -213,16 +212,14 @@ class PestanaCrear(QWidget):
         if not solicitud.redes:
             QMessageBox.warning(self, "Faltan redes", "Seleccione al menos una red social.")
             return
-        api_key = self.ctx.config.obtener_api_key()
-        if not api_key:
-            self.ctx.avisos.ir_a_configuracion.emit("Para generar publicaciones primero cargue su clave de API.")
-            return
-
         config = self.ctx.config
+        if not config.proveedor_listo():
+            self.ctx.avisos.ir_a_configuracion.emit("Para generar publicaciones primero cargue la clave de API de la IA elegida.")
+            return
         self._idea_en_curso = solicitud.idea
 
         def tarea(progreso, _parcial) -> ResultadoGeneracion:
-            self._motor = MotorIA(api_key, config.modelo, config.esfuerzo, progreso=progreso)
+            self._motor = crear_proveedor(config, progreso)
             return self._motor.generar_posts(solicitud)
 
         self._en_curso(True)

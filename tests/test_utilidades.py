@@ -5,7 +5,8 @@ from PIL import Image
 
 from posteos import config, exportar
 from posteos.ia import PostRed
-from posteos.media import ErrorAdjunto, bloques_de_adjuntos, cargar_adjunto
+from posteos.ia.claude import bloques_de_adjuntos
+from posteos.media import ErrorAdjunto, cargar_adjunto
 from posteos.opciones import REDES
 from posteos.social import ErrorEnlace, MetadatosPagina, _LectorHTML, detectar_red, nombre_sugerido, normalizar_url
 
@@ -122,6 +123,12 @@ def test_enlaces_de_publicacion():
 
 def test_configuracion_perfiles_e_historial(tmp_path, monkeypatch):
     monkeypatch.setenv("POSTEOS_DATOS", str(tmp_path))
+    (tmp_path / "configuracion.json").write_text('{"modelo": "claude-sonnet-5-5", "api_key_respaldo": "k"}')
+    viejo = config.Configuracion.cargar()  # formato de la versión 1.0
+    assert viejo.modelo_claude == "claude-sonnet-5-5"
+    assert viejo.claves_respaldo == {"claude": "k"}
+    assert viejo.proveedor == "gemini"
+    assert viejo.modelo_actual == "gemini-flash-latest"
     c = config.Configuracion.cargar()
     c.pais = "México"
     c.guardar()

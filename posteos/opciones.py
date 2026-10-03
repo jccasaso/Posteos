@@ -284,8 +284,23 @@ PAISES: tuple[tuple[str, str], ...] = (
     ("Internacional (varios países)", "UTC"),
 )
 
-MODELOS: tuple[tuple[str, str], ...] = (
-    ("claude-opus-5-5", "Claude Opus 5.5 (máxima calidad, recomendado)"),
+PROVEEDORES: tuple[tuple[str, str], ...] = (
+    ("gemini", "Google Gemini — gratis con límites diarios (recomendado)"),
+    ("ollama", "Ollama — IA local en esta PC, gratis y privada"),
+    ("claude", "Claude de Anthropic — de pago, máxima calidad"),
+)
+
+MODELOS_GEMINI: tuple[tuple[str, str], ...] = (
+    ("gemini-flash-latest", "Gemini Flash más reciente (recomendado)"),
+    ("gemini-flash-lite-latest", "Gemini Flash-Lite más reciente (más rápido y con más cuota gratuita)"),
+    ("gemini-2.5-flash", "Gemini 2.5 Flash"),
+)
+
+# Modelos locales con visión sugeridos para Ollama (se pueden escribir otros).
+MODELOS_OLLAMA: tuple[str, ...] = ("gemma3:12b", "gemma3:4b", "gemma3:27b", "qwen2.5vl:7b", "llama3.2-vision")
+
+MODELOS_CLAUDE: tuple[tuple[str, str], ...] = (
+    ("claude-opus-5-5", "Claude Opus 5.5 (máxima calidad)"),
     ("claude-sonnet-5-5", "Claude Sonnet 5.5 (más rápido y económico)"),
 )
 

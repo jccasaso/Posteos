@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from posteos.config import PerfilAnalizado
-from posteos.ia import MotorIA
+from posteos.ia import Proveedor, crear_proveedor
 from posteos.opciones import REDES
 from posteos.social import ErrorEnlace, detectar_red, nombre_sugerido, normalizar_url, obtener_metadatos
 from posteos.ui.adjuntos import SelectorAdjuntos
@@ -51,7 +51,7 @@ class PestanaAnalizar(QWidget):
     def __init__(self, ctx: Contexto, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
-        self._motor: MotorIA | None = None
+        self._motor: Proveedor | None = None
         self._url_en_curso = ""
         self._red_en_curso: str | None = None
         self._perfil_mostrado: PerfilAnalizado | None = None
@@ -216,12 +216,10 @@ class PestanaAnalizar(QWidget):
         except ErrorEnlace as e:
             QMessageBox.warning(self, "Enlace no válido", str(e))
             return
-        api_key = self.ctx.config.obtener_api_key()
-        if not api_key:
-            self.ctx.avisos.ir_a_configuracion.emit("Para analizar cuentas primero cargue su clave de API.")
-            return
-
         config = self.ctx.config
+        if not config.proveedor_listo():
+            self.ctx.avisos.ir_a_configuracion.emit("Para analizar cuentas primero cargue la clave de API de la IA elegida.")
+            return
         red = detectar_red(url)
         texto_pegado = self.texto_pegado.toPlainText()
         notas = self.notas.text()
@@ -232,7 +230,7 @@ class PestanaAnalizar(QWidget):
         def tarea(progreso, parcial) -> str:
             progreso("Leyendo los datos públicos de la página…")
             metadatos = obtener_metadatos(url)
-            self._motor = MotorIA(api_key, config.modelo, config.esfuerzo, progreso=progreso, texto_parcial=parcial)
+            self._motor = crear_proveedor(config, progreso, parcial)
             return self._motor.analizar_cuenta(url, red, metadatos.como_texto(), texto_pegado, notas, capturas)
 
         self._perfil_mostrado = None

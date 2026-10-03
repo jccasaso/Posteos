@@ -1,9 +1,9 @@
 ; Instalador de Windows (Inno Setup 6). Compilar con:
-;   iscc /DVersion=1.0.0 packaging\instalador.iss
+;   iscc /DVersion=1.1.0 packaging\instalador.iss
 ; Requiere haber generado antes dist\Posteos con PyInstaller.
 
 #ifndef Version
-  #define Version "1.0.0"
+  #define Version "1.1.0"
 #endif
 
 [Setup]

@@ -7,7 +7,9 @@ import httpx2
 import pytest
 
 from posteos.config import PerfilAnalizado
-from posteos.ia import BETA_FALLBACK, ErrorIA, MotorIA, SolicitudPost, construir_pedido, describir_error
+from posteos.ia import ErrorIA, SolicitudPost, construir_pedido, describir_error
+from posteos.ia.claude import BETA_FALLBACK
+from posteos.ia.claude import ProveedorClaude as MotorIA
 
 
 def sse(*eventos: dict) -> bytes:

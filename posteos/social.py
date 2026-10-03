@@ -130,9 +130,8 @@ class _LectorHTML(HTMLParser):
             self._buffer.append(data)
 
 
-def obtener_metadatos(url: str, timeout: float = 12.0) -> MetadatosPagina:
-    """Lee los metadatos públicos (título, Open Graph, JSON-LD) de una página."""
-    resultado = MetadatosPagina(url_final=url)
+def descargar_html(url: str, timeout: float = 12.0) -> tuple[str, int, str]:
+    """Descarga una página (hasta 2 MB). Devuelve (html, código HTTP, url final). Lanza las excepciones de urllib."""
     peticion = urllib.request.Request(
         url,
         headers={
@@ -141,12 +140,17 @@ def obtener_metadatos(url: str, timeout: float = 12.0) -> MetadatosPagina:
             "Accept-Language": "es-ES,es;q=0.9,en;q=0.6",
         },
     )
+    with urllib.request.urlopen(peticion, timeout=timeout) as respuesta:
+        codificacion = respuesta.headers.get_content_charset() or "utf-8"
+        contenido = respuesta.read(MAX_BYTES).decode(codificacion, errors="replace")
+        return contenido, respuesta.status, respuesta.geturl()
+
+
+def obtener_metadatos(url: str, timeout: float = 12.0) -> MetadatosPagina:
+    """Lee los metadatos públicos (título, Open Graph, JSON-LD) de una página."""
+    resultado = MetadatosPagina(url_final=url)
     try:
-        with urllib.request.urlopen(peticion, timeout=timeout) as respuesta:
-            resultado.estado = respuesta.status
-            resultado.url_final = respuesta.geturl()
-            tipo = respuesta.headers.get_content_charset() or "utf-8"
-            contenido = respuesta.read(MAX_BYTES).decode(tipo, errors="replace")
+        contenido, resultado.estado, resultado.url_final = descargar_html(url, timeout)
     except urllib.error.HTTPError as e:
         resultado.estado = e.code
         resultado.error = f"el sitio respondió con el código {e.code}"
@@ -164,3 +168,39 @@ def obtener_metadatos(url: str, timeout: float = 12.0) -> MetadatosPagina:
     resultado.meta = lector.meta
     resultado.datos_estructurados = lector.json_ld
     return resultado
+
+
+class _ExtractorTexto(HTMLParser):
+    IGNORAR = {"script", "style", "noscript", "svg", "nav", "footer", "header", "form", "iframe", "template"}
+    BLOQUES = {"p", "div", "br", "li", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "section", "article"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.partes: list[str] = []
+        self._ignorando = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.IGNORAR:
+            self._ignorando += 1
+        elif tag in self.BLOQUES:
+            self.partes.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in self.IGNORAR and self._ignorando:
+            self._ignorando -= 1
+
+    def handle_data(self, data):
+        if not self._ignorando:
+            self.partes.append(data)
+
+
+def extraer_texto(html: str, max_caracteres: int = 4000) -> str:
+    """Texto legible de una página HTML, sin scripts ni menús, recortado."""
+    extractor = _ExtractorTexto()
+    try:
+        extractor.feed(html)
+    except Exception:
+        pass
+    lineas = (" ".join(linea.split()) for linea in "".join(extractor.partes).splitlines())
+    texto = "\n".join(linea for linea in lineas if len(linea) > 1)
+    return texto[:max_caracteres]

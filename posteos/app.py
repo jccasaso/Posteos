@@ -40,7 +40,13 @@ def main() -> None:
     ventana.show()
 
     if "--autoprueba" in sys.argv:
-        # Verificación del ejecutable empaquetado: abre la ventana y sale.
+        # Verificación del ejecutable empaquetado: carga los proveedores de IA, abre la ventana y sale.
+        import posteos.busqueda  # noqa: F401
+        import posteos.ia.claude  # noqa: F401
+        import posteos.ia.gemini  # noqa: F401
+        import posteos.ia.local  # noqa: F401
+        from ddgs import DDGS  # noqa: F401
+
         QTimer.singleShot(1500, app.quit)
 
     sys.exit(app.exec())

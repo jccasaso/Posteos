@@ -64,7 +64,11 @@ def seleccionar(caja: QComboBox, valor: str) -> None:
 
 def valor(caja: QComboBox) -> str:
     if caja.isEditable():
-        return caja.currentText().strip()
+        texto = caja.currentText().strip()
+        indice = caja.findText(texto)
+        if indice >= 0 and caja.itemData(indice) is not None:
+            return caja.itemData(indice)  # opción de la lista con descripción: se devuelve su valor
+        return texto
     dato = caja.currentData()
     return dato if dato is not None else caja.currentText()
 
